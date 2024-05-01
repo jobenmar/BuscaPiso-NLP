@@ -5,17 +5,12 @@ SEMANA 1
 ----------
 
 ¿QUÉ DATOS USAMOS?
-----------
-REQUIERE CONSENTIMIENTO
-Kyeero 
-Idealista 
-Milanuncio 
-----------
-OPEN DATA
-Fotocasa
-----------
-CONTACTAR
-Badi 
-Habitacle 
-Pisos.com 
-----------
+
+Tras contactar con distintas plataformas, sólo podemos recopilar información de:
+
+ - Indomio
+ - Pisos.com
+ 
+ Hacemos los primeros scraps de las plataformas, primeramente en Indomio y nos basamos en este para hacer el posterior de Pisos.com.
+ Se crean diccionarios que almacenan como keys los links de los mismos anuncios, y sus items son: precio, descripción, características generales, otras características e información sobre eficiencia energética.
+ Para no ejecutar el código en sucesivas ocasionies cada vez que trabajamos en los códigos, creamos y subimos al repositorio sucesivos .pkl que contienen las url de los barrios, de los anuncios y el diccionario final que contiene la información sobre cada casa.
