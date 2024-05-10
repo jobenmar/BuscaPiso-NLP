@@ -25,7 +25,7 @@ class Descripcion(BaseModel):  # Clase para definir el modelo de entrada
     texto: str
 
 class Output(BaseModel):  # Clase para definir el modelo de salida
-    prediction: str
+    prediction: list
 
 def ToLlama(description: str):
     # Definición de la solicitud a la API LLAMA
@@ -59,22 +59,22 @@ def ToLlama(description: str):
 
 def FiltrarPisos(df : pd.DataFrame):
     # Cargamos el archivo limpiado de todos los pisos
-    df_pisos = pd.read_pickle("mi_dataframe.pkl")
+    df_pisos = pd.read_pickle("pisos_filtrado.pkl")
 
-    min_bedrooms = 2
-    max_price = 1500
-    min_bathrooms = 1
-    min_sqft = 120
-    contrato = "alquiler"
+    min_bedrooms = int(df['rooms'].iloc[0])
+    price = float(df['price'].iloc[0])
+    min_bathrooms = int(df['bathrooms'].iloc[0])
+    min_sqft = float(df['surface'].iloc[0])
+    contrato = df['contract'].iloc[0] 
 
-    # Filtrar el DataFrame por habitaciones, precio, baño, metros cuadrados y tipo contrato
-    pisos_filtrado = df_pisos[(df_pisos['Habitaciones'] >= min_bedrooms) &
-                            (df_pisos['Precio'] <= max_price) &
+    # Filtrar el DataFrame basado en las nuevas condiciones
+    pisos_filtered = df_pisos[(df_pisos['Habitaciones'] >= min_bedrooms) &
+                            (df_pisos['Precio'] <= price * 1.25) &  # Multiplicado por 1.25 para buscar pisos ligeramente mas caros que el precio indicado
                             (df_pisos['Baños'] >= min_bathrooms) &
-                            (df_pisos['Metros cuadrados'] >= min_sqft) &
+                            (df_pisos['Metros cuadrados'] >= min_sqft * 0.75) & #Multiplicado por 0.75 para buscar pisos ligeramente más pequeños
                             (df_pisos['Contrato'] == contrato)]
         
-    return pisos_filtrado
+    return pisos_filtered
 
 @app.post("/predict", response_model=Output)
 async def predict(data: Descripcion):
@@ -88,9 +88,9 @@ async def predict(data: Descripcion):
     pisos_filtered = FiltrarPisos(df)
     
     prediction = {
-        'prediction': "asdf"  # Envuelve la predicción (en este caso el texto recibido) en un diccionario
+        'prediction': pisos_filtered['Descripcion'].head(5).tolist()
     }
-    return prediction  # Devuelve el diccionario como un objeto 'Output'
+    return prediction
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
