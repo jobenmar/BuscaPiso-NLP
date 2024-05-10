@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Conexión con API de FastAPI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 20%;
+            margin: 0;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            height: 150px;
+            resize: vertical;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            width: 100%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>&nbsp; &nbsp &nbsp;Buscador de tu piso ideal &nbsp; &nbsp; &nbsp;</h1>
+        <form id="myForm">
+            <textarea id="textInput" placeholder="Describe como es tu piso ideal" required></textarea>
+            <br/>
+            <button type="submit">Enviar</button>
+        </form>
+        <div id="response"></div>
+    </div>
+
+    <script>
+        document.getElementById('myForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const text = document.getElementById('textInput').value;
+            fetch('http://localhost:8000/predict', {  // Asegúrate de que la URL coincide con la de tu API local
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ texto: text })  // Asegúrate de que la clave 'texto' coincide con la esperada por tu API
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('response').textContent = 'Respuesta recibida: ' + data.prediction;
+            })
+            .catch(error => {
+                console.error('Error al enviar el texto:', error);
+                document.getElementById('response').textContent = 'Error al enviar el texto: ' + error;
+            });
+        });
+    </script>
+</body>
+</html>
