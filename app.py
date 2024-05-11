@@ -62,9 +62,9 @@ def FiltrarPisos(df : pd.DataFrame):
     df_pisos = pd.read_pickle("pisos_filtrado.pkl")
 
     min_bedrooms = int(df['rooms'].iloc[0])
-    price = float(df['price'].iloc[0])
+    price = int(df['price'].iloc[0])
     min_bathrooms = int(df['bathrooms'].iloc[0])
-    min_sqft = float(df['surface'].iloc[0])
+    min_sqft = int(df['surface'].iloc[0])
     contrato = df['contract'].iloc[0] 
 
     # Filtrar el DataFrame basado en las nuevas condiciones

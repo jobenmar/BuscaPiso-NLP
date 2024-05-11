@@ -82,8 +82,8 @@
             .then(data => {
                 loader.style.display = 'none'; // Ocultar el spinner
                 // Crear una cadena de texto con cada descripción en una nueva línea
-                let descriptions = data.predictions.join("\n\n"); // Añade dos saltos de línea entre cada descripción
-                document.getElementById('response').textContent = descriptions;
+                let descriptions = data.prediction.join("\n\n"); // Añade dos saltos de línea entre cada descripción
+                document.getElementById('response').textContent = "descriptions";
             })
             .catch(error => {
                 loader.style.display = 'none'; // Ocultar el spinner
