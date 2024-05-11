@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Conexión con API de FastAPI</title>
+    <title>Buscador de Pisos</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -30,10 +30,11 @@
         #response {
             margin-top: 20px;
             padding: 10px;
-            background-color: #f0f0f0;
+            /* background-color: #f0f0f0; */
             width: 100%;
             text-align: left; /* Alineación a la izquierda para listado de descripciones */
             white-space: pre-wrap; /* Mantiene el formateo de los espacios y saltos de línea */
+            font-size: 1.2em;
         }
         .loader {
         border: 16px solid #f3f3f3; /* Light grey */
@@ -57,7 +58,7 @@
         <form id="myForm">
             <textarea id="textInput" placeholder="Describe como es tu piso ideal" required></textarea>
             <br/>
-            <button type="submit">Enviar</button>
+            <button type="submit">Buscar</button>
             <br/>
             <div class="loader" id="loader"></div>
         </form>
@@ -69,6 +70,7 @@
             event.preventDefault();
             const text = document.getElementById('textInput').value;
             const loader = document.getElementById('loader');
+            const responseDiv = document.getElementById('response');
             loader.style.display = 'block';
             
             fetch('http://localhost:8000/predict', {  
@@ -81,15 +83,23 @@
             .then(response => response.json())
             .then(data => {
                 loader.style.display = 'none'; // Ocultar el spinner
-                // Crear una cadena de texto con cada descripción en una nueva línea
-                console.log(data)
-                let descriptions = data.prediction.join("\n\n"); // Añade dos saltos de línea entre cada descripción
-                document.getElementById('response').textContent = descriptions;
+                responseDiv.innerHTML = ''; // Limpiar contenido previo
+                
+                data.prediction.forEach(url => {
+                    const link = document.createElement('a');
+                    link.href = url; // Asignar URL al href del enlace
+                    link.textContent = url; // Asignar URL como texto visible del enlace
+                    link.target = '_blank'; // Abrir en una nueva pestaña
+                    link.style.display = 'block'; // Hacer que cada enlace sea un bloque para forzar un salto de línea
+                    responseDiv.appendChild(link);
+                    const breakLine = document.createElement('br'); // Crear un elemento de salto de línea
+                    responseDiv.appendChild(breakLine);
+                });
             })
             .catch(error => {
                 loader.style.display = 'none'; // Ocultar el spinner
                 console.error('Error al enviar el texto:', error);
-                document.getElementById('response').textContent = 'Error al enviar el texto: ' + error;
+                responseDiv.textContent = 'Error al enviar el texto: ' + error;
             });
         });
     </script>

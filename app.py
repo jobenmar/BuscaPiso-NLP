@@ -5,6 +5,11 @@ import uvicorn
 import json
 import requests
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import TruncatedSVD
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import Normalizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 app = FastAPI()
 
@@ -61,11 +66,18 @@ def FiltrarPisos(df : pd.DataFrame):
     # Cargamos el archivo limpiado de todos los pisos
     df_pisos = pd.read_pickle("pisos_filtrado.pkl")
 
+    # Manejamos los posibles errores de las caracteristicas obtenidas con Llama
+    def safe_convert_to_int(value):
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return 0
+    
     # Si falta alguna información ponemos un 0 (menos en contrato que siempre será 'alquiler' o 'venta')
-    min_bedrooms = int(df['rooms'].iloc[0] or 0)
-    price = int(df['price'].iloc[0] or 0)
-    min_bathrooms = int(df['bathrooms'].iloc[0] or 0)
-    min_sqft = int(df['surface'].iloc[0] or 0)
+    min_bedrooms = safe_convert_to_int(df['rooms'].iloc[0])
+    price = safe_convert_to_int(df['price'].iloc[0])
+    min_bathrooms = safe_convert_to_int(df['bathrooms'].iloc[0])
+    min_sqft = safe_convert_to_int(df['surface'].iloc[0])
     contrato = df['contract'].iloc[0]
     
     # Filtrar el DataFrame basado en las nuevas condiciones
@@ -74,8 +86,42 @@ def FiltrarPisos(df : pd.DataFrame):
                             (df_pisos['Baños'] >= min_bathrooms) &
                             (df_pisos['Metros cuadrados'] >= min_sqft * 0.75) & #Multiplicado por 0.75 para buscar pisos ligeramente más pequeños
                             (df_pisos['Contrato'] == contrato)]
+    
+    # Poner la url de los pisos como columna del dataframe
+    pisos_filtered.reset_index(inplace=True)
+
     return pisos_filtered
 
+def OrdenarPorSimilitud(df : pd.DataFrame, descripcion : str):
+    tv = TfidfVectorizer()
+    svd = TruncatedSVD(n_components=50) # Reduciremos las dimensiones a 50
+    lsa = make_pipeline(tv, svd, Normalizer(copy=False))
+    lsa_topic_vectors = lsa.fit_transform(df["Descripcion"])
+
+    # Transformar la nueva descripción usando la misma pipeline LSA
+    vector_descripcion = lsa.transform([descripcion])
+
+    # Calcular la similitud coseno entre la nueva descripción y todas las descripciones existentes
+    similarities = cosine_similarity(vector_descripcion, lsa_topic_vectors)
+
+    # Obtener los índices de las descripciones más similares en orden descendente
+    most_similar_indices = similarities.argsort()[0][::-1]
+
+    # Reordenar el DataFrame según los índices de similitud más alta
+    df_ordered = df.iloc[most_similar_indices]
+
+    return df_ordered
+
+
+##
+# Endpoint para procesar descripciones de pisos:
+#   1. Recibe una descripción textual del piso que se quiere buscar.
+#   2. Extrae datos estructurados relevantes de la descripción utilizando Llama3.
+#   3. Filtra y recupera pisos de pisos_filtrado.pkl que coincidan con los datos estructurados obtenidos.
+#   4. Aplica topic modeling (LSA) para evaluar la similitud entre la descripción proporcionada
+#      y las descripciones de los pisos filtrados.
+#   5. Devuelve los pisos ordenados por su grado de similitud con respecto a la descripción inicial.
+##
 @app.post("/predict", response_model=Output)
 async def predict(data: Descripcion):
     # Procesa el texto recibido
@@ -86,10 +132,13 @@ async def predict(data: Descripcion):
 
     # Filtrar el conjunto de pisos por las caracteristicas obtenidas de llama
     pisos_filtered = FiltrarPisos(df)
-    pisos_filtered.reset_index(inplace=True)
-    # print(pisos_filtered)
+    
+    # Ordenar por similitud en la descripcion
+    pisos_ordenados = OrdenarPorSimilitud(pisos_filtered, description)
+
+    # Enviar los 5 pisos más similares
     prediction = {
-        'prediction': pisos_filtered["index"].head(5).tolist()
+        'prediction': pisos_ordenados["index"].head(5).tolist()
     }
     return prediction
 
