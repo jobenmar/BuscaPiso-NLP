@@ -31,7 +31,7 @@ def ToLlama(description: str):
     # Definición de la solicitud a la API LLAMA
     llama_call = {
         "model": "llama3",
-        "prompt": "Provide a JSON object with the fields location, rooms, bathrooms, price, surface and contract, that correspond to the location of an apartment, its number of rooms, number of bathrooms, price, surface and contract type, respectively. The contract type can be 'rent' or 'sale'. Extract the information from the following description: " + description,
+        "prompt": "Provide a JSON object with the fields location, rooms, bathrooms, price, surface and contract, that correspond to the location of an apartment, its number of rooms, number of bathrooms, price, surface and contract type, respectively. The contract type can be 'alquiler' or 'venta'. Extract the information from the following description: " + description,
         "format": "json",
         "stream": False
     }
@@ -61,19 +61,19 @@ def FiltrarPisos(df : pd.DataFrame):
     # Cargamos el archivo limpiado de todos los pisos
     df_pisos = pd.read_pickle("pisos_filtrado.pkl")
 
-    min_bedrooms = int(df['rooms'].iloc[0])
-    price = int(df['price'].iloc[0])
-    min_bathrooms = int(df['bathrooms'].iloc[0])
-    min_sqft = int(df['surface'].iloc[0])
-    contrato = df['contract'].iloc[0] 
-
+    # Si falta alguna información ponemos un 0 (menos en contrato que siempre será 'alquiler' o 'venta')
+    min_bedrooms = int(df['rooms'].iloc[0] or 0)
+    price = int(df['price'].iloc[0] or 0)
+    min_bathrooms = int(df['bathrooms'].iloc[0] or 0)
+    min_sqft = int(df['surface'].iloc[0] or 0)
+    contrato = df['contract'].iloc[0]
+    
     # Filtrar el DataFrame basado en las nuevas condiciones
     pisos_filtered = df_pisos[(df_pisos['Habitaciones'] >= min_bedrooms) &
-                            (df_pisos['Precio'] <= price * 1.25) &  # Multiplicado por 1.25 para buscar pisos ligeramente mas caros que el precio indicado
+                            ((df_pisos['Precio'] <= price * 1.25) if price > 0 else True) &  # Solo filtrar por precio si no es 0 y multiplicado por 1.25 para buscar pisos ligeramente mas caros que el precio indicado
                             (df_pisos['Baños'] >= min_bathrooms) &
                             (df_pisos['Metros cuadrados'] >= min_sqft * 0.75) & #Multiplicado por 0.75 para buscar pisos ligeramente más pequeños
                             (df_pisos['Contrato'] == contrato)]
-        
     return pisos_filtered
 
 @app.post("/predict", response_model=Output)
@@ -86,9 +86,10 @@ async def predict(data: Descripcion):
 
     # Filtrar el conjunto de pisos por las caracteristicas obtenidas de llama
     pisos_filtered = FiltrarPisos(df)
-    
+    pisos_filtered.reset_index(inplace=True)
+    # print(pisos_filtered)
     prediction = {
-        'prediction': pisos_filtered['Descripcion'].head(5).tolist()
+        'prediction': pisos_filtered["index"].head(5).tolist()
     }
     return prediction
 
