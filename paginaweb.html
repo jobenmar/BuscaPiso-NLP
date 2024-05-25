@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Buscador de Pisos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 20%;
+            margin: 0;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            height: 150px;
+            resize: vertical;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 10px;
+            /* background-color: #f0f0f0; */
+            width: 100%;
+            text-align: left; /* Alineación a la izquierda para listado de descripciones */
+            white-space: pre-wrap; /* Mantiene el formateo de los espacios y saltos de línea */
+            font-size: 1.2em;
+        }
+        .loader {
+        border: 16px solid #f3f3f3; /* Light grey */
+        border-top: 16px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        animation: spin 2s linear infinite;
+        display: none; /* Oculto por defecto */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>Buscador de tu piso ideal</h1>
+        <form id="myForm">
+            <textarea id="textInput" placeholder="Describe como es tu piso ideal" required></textarea>
+            <br/>
+            <button type="submit">Buscar</button>
+            <br/>
+            <div class="loader" id="loader"></div>
+        </form>
+        <div id="response"></div>
+    </div>
+
+    <script>
+        document.getElementById('myForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const text = document.getElementById('textInput').value;
+            const loader = document.getElementById('loader');
+            const responseDiv = document.getElementById('response');
+            loader.style.display = 'block';
+            
+            fetch('http://localhost:8000/predict', {  
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ texto: text }) 
+            })
+            .then(response => response.json())
+            .then(data => {
+                loader.style.display = 'none'; // Ocultar el spinner
+                responseDiv.innerHTML = ''; // Limpiar contenido previo
+                
+                data.prediction.forEach(url => {
+                    const link = document.createElement('a');
+                    link.href = url; // Asignar URL al href del enlace
+                    link.textContent = url; // Asignar URL como texto visible del enlace
+                    link.target = '_blank'; // Abrir en una nueva pestaña
+                    link.style.display = 'block'; // Hacer que cada enlace sea un bloque para forzar un salto de línea
+                    responseDiv.appendChild(link);
+                    const breakLine = document.createElement('br'); // Crear un elemento de salto de línea
+                    responseDiv.appendChild(breakLine);
+                });
+            })
+            .catch(error => {
+                loader.style.display = 'none'; // Ocultar el spinner
+                console.error('Error al enviar el texto:', error);
+                responseDiv.textContent = 'Error al enviar el texto: ' + error;
+            });
+        });
+    </script>
+</body>
+</html>
