@@ -36,7 +36,7 @@ def ToLlama(description: str):
     # Definición de la solicitud a la API LLAMA
     llama_call = {
         "model": "llama3",
-        "prompt": "Provide a JSON object with the fields location, rooms, bathrooms, price, surface and contract, that correspond to the location of an apartment, its number of rooms, number of bathrooms, price, surface and contract type, respectively. The contract type can be 'alquiler' or 'venta'. Extract the information from the following description: " + description,
+        "prompt": "Create a JSON object with the fields: rooms, bathrooms, max_price, min_price, max_surface, min_surface, and contract. These fields represent the number of rooms in an apartment, the number of bathrooms, the maximum price, the minimum price, the maximum surface area, the minimum surface area, and the contract type, respectively. The contract field can have the values 'alquiler' (rent) or 'venta' (sale). If it is unclear whether the price is a maximum or minimum, assign it to max_price and set min_price to 0. Similarly, if it is unclear whether the surface area is a maximum or minimum, assign it to min_surface and set max_surface to 0. Extract the relevant information from the following description: " + description,
         "format": "json",
         "stream": False
     }
@@ -75,21 +75,33 @@ def FiltrarPisos(df : pd.DataFrame):
     
     # Si falta alguna información ponemos un 0 (menos en contrato que siempre será 'alquiler' o 'venta')
     min_bedrooms = safe_convert_to_int(df['rooms'].iloc[0])
-    price = safe_convert_to_int(df['price'].iloc[0])
+    max_price = safe_convert_to_int(df['max_price'].iloc[0])
+    min_price = safe_convert_to_int(df['min_price'].iloc[0])
     min_bathrooms = safe_convert_to_int(df['bathrooms'].iloc[0])
-    min_sqft = safe_convert_to_int(df['surface'].iloc[0])
+    max_sqft = safe_convert_to_int(df['max_surface'].iloc[0])
+    min_sqft = safe_convert_to_int(df['min_surface'].iloc[0])
     contrato = df['contract'].iloc[0]
     
     # Filtrar el DataFrame basado en las nuevas condiciones
     pisos_filtered = df_pisos[(df_pisos['Habitaciones'] >= min_bedrooms) &
-                            ((df_pisos['Precio'] <= price * 1.25) if price > 0 else True) &  # Solo filtrar por precio si no es 0 y multiplicado por 1.25 para buscar pisos ligeramente mas caros que el precio indicado
+                            ((df_pisos['Precio'] <= max_price) if max_price > 0 else True) &  # Solo filtrar por máximo precio si no es 0 
+                            (df_pisos['Precio'] >= min_price) & 
                             (df_pisos['Baños'] >= min_bathrooms) &
-                            (df_pisos['Metros cuadrados'] >= min_sqft * 0.75) & #Multiplicado por 0.75 para buscar pisos ligeramente más pequeños
+                            ((df_pisos['Metros cuadrados'] <= max_sqft) if max_sqft > 0 else True) &  # Solo filtrar por máximo sqft si no es 0 
+                            (df_pisos['Metros cuadrados'] >= min_sqft) & 
                             (df_pisos['Contrato'] == contrato)]
     
     # Poner la url de los pisos como columna del dataframe
     pisos_filtered.reset_index(inplace=True)
+    print("-------------------------------------------------------------------")
 
+    print(min_bedrooms)
+    print(max_price)
+    print(min_price)
+    print(min_bathrooms)
+    print(max_sqft)
+    print(min_sqft)
+ 
     return pisos_filtered
 
 def OrdenarPorSimilitud(df : pd.DataFrame, descripcion : str):
