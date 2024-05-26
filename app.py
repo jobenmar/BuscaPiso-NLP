@@ -36,7 +36,7 @@ def ToLlama(description: str):
     # Definición de la solicitud a la API LLAMA
     llama_call = {
         "model": "llama3",
-        "prompt": "Create a JSON object with the fields: rooms, bathrooms, max_price, min_price, max_surface, min_surface, and contract. These fields represent the number of rooms in an apartment, the number of bathrooms, the maximum price, the minimum price, the maximum surface area, the minimum surface area, and the contract type, respectively. The contract field can have the values 'alquiler' (rent) or 'venta' (sale). If it is unclear whether the price is a maximum or minimum, assign it to max_price and set min_price to 0. Similarly, if it is unclear whether the surface area is a maximum or minimum, assign it to min_surface and set max_surface to 0. Extract the relevant information from the following description: " + description,
+        "prompt": "Create a JSON object with the fields: rooms, bathrooms, max_price, min_price, max_surface, min_surface, and contract. These fields represent the number of rooms in an apartment, the number of bathrooms, the maximum price, the minimum price, the maximum surface area, the minimum surface area, and the contract type, respectively. The contract field can have the values 'alquiler' (rent) or 'venta' (sale). If it is unclear whether the price is a maximum or minimum, assign it to max_price and set min_price to 0. Similarly, if it is unclear whether the surface area is a maximum or minimum, assign it to min_surface and set max_surface to 0. If information for any field is not found, it should be filled with 0. Extract the relevant information from the following description: " + description,
         "format": "json",
         "stream": False
     }
@@ -87,8 +87,8 @@ def FiltrarPisos(df : pd.DataFrame):
                             ((df_pisos['Precio'] <= max_price) if max_price > 0 else True) &  # Solo filtrar por máximo precio si no es 0 
                             (df_pisos['Precio'] >= min_price) & 
                             (df_pisos['Baños'] >= min_bathrooms) &
-                            ((df_pisos['Metros cuadrados'] <= max_sqft) if max_sqft > 0 else True) &  # Solo filtrar por máximo sqft si no es 0 
-                            (df_pisos['Metros cuadrados'] >= min_sqft) & 
+                            ((df_pisos['Metros Cuadrados'] <= max_sqft) if max_sqft > 0 else True) &  # Solo filtrar por máximo sqft si no es 0 
+                            (df_pisos['Metros Cuadrados'] >= min_sqft) & 
                             (df_pisos['Contrato'] == contrato)]
     
     # Poner la url de los pisos como columna del dataframe
@@ -147,6 +147,14 @@ async def predict(data: Descripcion):
     
     # Ordenar por similitud en la descripcion
     pisos_ordenados = OrdenarPorSimilitud(pisos_filtered, description)
+    print("_______________")
+    print(pisos_ordenados.iloc[2])
+    print("_______________")
+    print(pisos_ordenados.iloc[3])
+    print("_______________")
+    print(pisos_ordenados.iloc[4])
+    print("_______________")
+    print(pisos_ordenados.iloc[5])
 
     # Enviar los 5 pisos más similares
     prediction = {
